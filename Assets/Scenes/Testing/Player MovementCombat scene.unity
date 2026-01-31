@@ -556,6 +556,7 @@ GameObject:
   - component: {fileID: 1580094826}
   - component: {fileID: 1580094828}
   - component: {fileID: 1580094827}
+  - component: {fileID: 1580094829}
   m_Layer: 5
   m_Name: BloodOverlay
   m_TagString: Untagged
@@ -594,8 +595,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 2100000, guid: 9494ce022071e464db7a275849af6fbd, type: 2}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Material: {fileID: 2100000, guid: 47d7bbb0b60c47146952b1b2161c649b, type: 2}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -620,6 +621,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1580094825}
   m_CullTransparentMesh: 1
+--- !u!114 &1580094829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1580094825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a268ae6d7869004e87c971b3f6fc70a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloodScreenEffect
+  bloodImage: {fileID: 1580094827}
+  fadeSpeed: 2
 --- !u!1 &1963633925
 GameObject:
   m_ObjectHideFlags: 0
@@ -1015,7 +1030,7 @@ PrefabInstance:
     - target: {fileID: 7522519686235008036, guid: 917b2c6df4133164998d3e2f14601475, type: 3}
       propertyPath: bloodEffect
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1580094829}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

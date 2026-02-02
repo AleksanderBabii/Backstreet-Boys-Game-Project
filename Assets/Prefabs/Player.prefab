@@ -106,9 +106,12 @@ GameObject:
   - component: {fileID: 2083235656359421321}
   - component: {fileID: 7634628543062198493}
   - component: {fileID: 7522519686235008036}
+  - component: {fileID: 8856982641875821391}
+  - component: {fileID: 3348417138677967070}
+  - component: {fileID: 3922245885543847171}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -252,3 +255,48 @@ MonoBehaviour:
   highSpeedSlipMultiplier: 0.5
   iceExitFrictionBlend: 3
   bloodEffect: {fileID: 0}
+--- !u!114 &8856982641875821391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6027612295538864706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ec78da4942db148bb339d829835510, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  maxHealth: 100
+  currentHealth: 0
+--- !u!114 &3348417138677967070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6027612295538864706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62b6a23c534a4834c8ac1d332b582c12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthVisuals
+  bloodEffect: {fileID: 0}
+--- !u!114 &3922245885543847171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6027612295538864706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d715b649a19d39045a69adb8b9a4aa2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFeeding
+  feedRange: 2
+  feedDamage: 40
+  healAmount: 30
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8

@@ -3,10 +3,14 @@ using UnityEngine.InputSystem;
 
 public class PlayerFeeding : MonoBehaviour
 {
+    [Header("Feeding")]
     public float feedRange = 2f;
     public float feedDamage = 40f;
     public float healAmount = 30f;
     public LayerMask enemyLayer;
+
+    [Header("UI")]
+    public FeedPromptUI feedPrompt;
 
     Health playerHealth;
 
@@ -44,6 +48,32 @@ public class PlayerFeeding : MonoBehaviour
                 break;
             }
         }
+    }
+    void Update()
+    {
+        bool canFeed = false;
+
+        Collider[] hits = Physics.OverlapSphere(
+            transform.position,
+            feedRange,
+            enemyLayer
+        );
+
+        foreach (Collider hit in hits)
+        {
+            Enemy enemy = hit.GetComponent<Enemy>();
+
+            if (enemy != null && enemy.CanBeFedOn())
+            {
+                canFeed = true;
+                break;
+            }
+        }
+
+        if (canFeed)
+            feedPrompt.Show();
+        else
+            feedPrompt.Hide();
     }
 }
 

@@ -101,10 +101,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeAI
   detectionRange: 15
   attackRange: 2
-  moveSpeed: 3
-  rotationSpeed: 8
+  moveSpeed: 2
+  rotationSpeed: 5
   attackDamage: 15
-  attackCooldown: 1.2
+  attackCooldown: 5
 --- !u!54 &8032601428495833180
 Rigidbody:
   m_ObjectHideFlags: 0

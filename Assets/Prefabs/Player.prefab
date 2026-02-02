@@ -282,6 +282,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthVisuals
   bloodEffect: {fileID: 0}
+  lowHealthPulseStrength: 2
 --- !u!114 &3922245885543847171
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -300,3 +301,4 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
+  feedPrompt: {fileID: 0}

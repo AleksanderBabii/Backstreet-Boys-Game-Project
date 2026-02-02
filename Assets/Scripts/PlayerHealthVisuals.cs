@@ -3,6 +3,7 @@ using UnityEngine;
 public class PlayerHealthVisuals : MonoBehaviour
 {
     public BloodScreenEffect bloodEffect;
+    public float lowHealthPulseStrength = 0.5f;
 
     Health health;
 
@@ -23,8 +24,12 @@ public class PlayerHealthVisuals : MonoBehaviour
 
     void OnHealthChanged(float hp)
     {
-        float intensity = 1f - (hp / health.maxHealth);
-        bloodEffect.ShowBlood(intensity);
+        float percent = hp / health.maxHealth;
+        float intensity = 1f - percent;
+        if (percent <= 0.3f)
+            intensity += Mathf.Sin(Time.time * 4f) * lowHealthPulseStrength;
+
+        bloodEffect.ShowBlood(Mathf.Clamp01(intensity));
     }
 }
 

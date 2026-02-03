@@ -4,32 +4,36 @@ using System;
 public class Health : MonoBehaviour, IDamageable
 {
     public float maxHealth = 100f;
-    public float currentHealth;
+    public float currentHealth { get; private set; }
 
-    public bool IsDead => currentHealth <= 0f;
+    public bool IsDead { get; private set; }
 
     public event Action<float> OnHealthChanged;
-    public event Action OnDeath;    
+    public event Action OnDeath;
 
     void Awake()
     {
         currentHealth = maxHealth;
+        IsDead = false;
     }
 
     public void TakeDamage(float amount)
     {
+        Debug.Log($"{gameObject.name} took {amount} damage");
+
         if (IsDead) return;
 
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
+        Debug.Log($"Current HP: {currentHealth}");
+
         OnHealthChanged?.Invoke(currentHealth);
 
         if (currentHealth <= 0f)
-        {
             Die();
-        }
     }
+
 
     public void Heal(float amount)
     {
@@ -41,12 +45,16 @@ public class Health : MonoBehaviour, IDamageable
         OnHealthChanged?.Invoke(currentHealth);
     }
 
-    public void Die() 
+    void Die()
     {
-        // Handle player death (e.g., play animation, respawn, etc.)
-        Debug.Log("Player has died.");
+        if (IsDead) return;
+        IsDead = true;
+
+        OnDeath?.Invoke();
+
+        Debug.Log($"{gameObject.name} died.");
+
+        // Delay destruction for player/enemy to play death animation
         Destroy(gameObject, 2f);
-    
     }
 }
-

@@ -3,18 +3,25 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovementController : MonoBehaviour
 {
-    /// <summary>
-    /// Movement Variables
-    /// </summary>
+    // ---------- Movement Variables ----------
     [Header("Movement")]
     public float walkSpeed = 2f;
     public float sprintSpeed = 4f;
-    public float jumpHeight = 3f;
     float playerSpeed;
 
-    /// <summary>
-    /// Mouse Look Variables
-    /// </summary>
+    // ---------- Jumping Variables ----------
+    [Header("Jumping")]
+    public float jumpForce = 5f;
+    public float groundCheckDistance = 0.5f;
+    public LayerMask groundLayer;
+    bool isGrounded;
+    bool isJumping;
+    float jumpCooldown = 0.2f;
+    float lastJumpTime;
+
+
+    // ---------- Mouse Look Variables ----------
+
     [Header("Mouse Look")]
     public float mouseSensitivity = 2f;
     public Transform cameraPivot;
@@ -27,9 +34,9 @@ public class PlayerMovementController : MonoBehaviour
     float yRotation = 0f;   // horizontal
 
 
-    /// <summary>
-    /// Stamina Variables
-    /// </summary>
+
+    // ---------- Stamina Variables ----------
+
     [Header("Stamina")]
     public float maxStamina = 100f;
     public float staminaDrainRate = 25f;
@@ -38,18 +45,18 @@ public class PlayerMovementController : MonoBehaviour
     float currentStamina;
     bool canSprint = true;
 
-    /// <summary>
-    /// Speed Boost Variables
-    /// </summary>
+
+    // --------- Speed Boost Variables ----------
+
     [Header("Speed Boost")]
     public float boostMultiplier = 1.5f;
     public float boostDuration = 3f;
     float boostTimer = 0f;
     bool boostActive = false;
 
-    /// <summary>
-    /// Physics Materials for different ground types
-    /// </summary>
+
+    // --------- Slippery Surface Variables ----------
+
     [Header("Slippery State ")]
     public PhysicsMaterial normalMaterial;
     public PhysicsMaterial slipperyMaterial;
@@ -73,7 +80,7 @@ public class PlayerMovementController : MonoBehaviour
 
 
 
-    /// Private Variables
+    // ---------- INTERNAL STATE ----------
     CapsuleCollider capsule;
     float currentControl = 1f;
     float targetControl = 1f;
@@ -82,11 +89,11 @@ public class PlayerMovementController : MonoBehaviour
     bool isSprinting;
     Vector2 moveInput;
     Vector2 lookInput;
-    Vector3 horizontalVelocity;
     Vector3 momentumDirection;
     Animator anim;
     Rigidbody rb;
 
+    // ---------- LIFE CYCLE ----------
     void Start()
     {
         currentStamina = maxStamina;
@@ -126,6 +133,7 @@ public class PlayerMovementController : MonoBehaviour
         isSprinting = value.isPressed;
         playerSpeed = isSprinting ? sprintSpeed : walkSpeed;
     }
+
     public void OnSprintStop(InputValue value)
     {
         // Ensure sprinting stops when the key is released
@@ -133,13 +141,27 @@ public class PlayerMovementController : MonoBehaviour
         playerSpeed = walkSpeed;
     }
 
+    [System.Obsolete]
     public void OnJump(InputValue value)
     {
-        if (value.isPressed)
-        {
-            rb.AddForce(Vector3.up * jumpHeight, ForceMode.Impulse);
-        }
+        Debug.Log("Jump input received: " + value.isPressed);
+
+        if (!value.isPressed)
+            return;
+
+        if (!isGrounded || isJumping)
+            return;
+
+        if (Time.time - lastJumpTime < jumpCooldown)
+            return;
+
+        lastJumpTime = Time.time;
+        isJumping = true;
+
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
+
 
     // ---------- SPEED BOOST ----------
     public void ActivateSpeedBoost(float multiplier, float duration)
@@ -179,58 +201,66 @@ public class PlayerMovementController : MonoBehaviour
 
     // ---------- MOVEMENT ----------
 
-    // FixedUpdate is called at a fixed interval and is independent of frame rate
     [System.Obsolete]
     void FixedUpdate()
+{
+    CheckGrounded();
+    //Fallnack direction
+    if (momentumDirection == Vector3.zero)
+        momentumDirection = transform.forward;
+
+    //currwent horizontal velocity
+    Vector3 currentVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+    float currentSpeed = currentVelocity.magnitude;
+
+    // Stronger slide at higher speed
+    speedFactor = Mathf.Lerp(1f, highSpeedSlipMultiplier, currentSpeed / maxSlideSpeed);
+    
+    float effectiveControl = currentControl * speedFactor;
+
+    bool hasInput = moveInput.magnitude > 0.1f;
+
+    // Desired movement direction
+    Vector3 desiredDirection = hasInput
+        ? (transform.right * moveInput.x + transform.forward * moveInput.y)
+        : momentumDirection;
+
+    // Angular inertia
+    momentumDirection = Vector3.Slerp(
+        momentumDirection,
+        desiredDirection.normalized,
+        effectiveControl * angularInertia * Time.fixedDeltaTime
+    ).normalized;
+
+    float targetSpeed = hasInput ? playerSpeed : currentSpeed;
+
+    float newSpeed = Mathf.Lerp(
+        currentSpeed,
+        targetSpeed,
+        effectiveControl
+    );
+
+    // Clamp to max slide speed
+    newSpeed = Mathf.Clamp(newSpeed, 0f, maxSlideSpeed);
+
+    Vector3 finalVelocity = momentumDirection * newSpeed;
+
+    // ONLY control horizontal movement when grounded
+    if (isGrounded)
     {
-        if (momentumDirection == Vector3.zero)
-            momentumDirection = transform.forward;
-
-        Vector3 currentVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        float currentSpeed = currentVelocity.magnitude;
-
-        // stronger slide at higher speed
-        speedFactor = Mathf.Lerp(1f, highSpeedSlipMultiplier, currentSpeed / maxSlideSpeed);
-        float effectiveControl = currentControl * speedFactor;
-
-        bool hasInput = moveInput.magnitude > 0.1f;
-
-        Vector3 desiredDirection = hasInput
-            ? (transform.right * moveInput.x + transform.forward * moveInput.y).normalized
-            : momentumDirection;
-
-        // angular inertia
-        momentumDirection = Vector3.Slerp(
-            momentumDirection,
-            desiredDirection,
-            effectiveControl * angularInertia * Time.fixedDeltaTime
-        );
-
-        float targetSpeed = hasInput ? playerSpeed : currentSpeed;
-
-        float newSpeed = Mathf.Lerp(
-            currentSpeed,
-            targetSpeed,
-            effectiveControl
-        );
-
-        // clamp speed correctly
-        newSpeed = Mathf.Clamp(newSpeed, 0f, maxSlideSpeed);
-
-        Vector3 finalVelocity = momentumDirection * newSpeed;
-
         rb.velocity = new Vector3(
             finalVelocity.x,
             rb.velocity.y,
             finalVelocity.z
         );
-
-        isMoving = newSpeed > 0.1f;
     }
 
+    isMoving = newSpeed > 0.1f;
+}
 
     // ---------- UPDATE ----------
 
+    [System.Obsolete]
     void Update()
     {
         HandleCamera();
@@ -242,7 +272,7 @@ public class PlayerMovementController : MonoBehaviour
             targetControl,
             slipperyRecoverySpeed * Time.deltaTime);
 
-        float speed = rb.linearVelocity.magnitude;
+        float speed = rb.velocity.magnitude;
 
         if (speed > maxSlideSpeed * 0.8f)
         {
@@ -252,40 +282,40 @@ public class PlayerMovementController : MonoBehaviour
 
     // ---------- CAMERA ----------
     void HandleCamera()
-{
-    float mouseX = lookInput.x * mouseSensitivity * 100f * Time.deltaTime;
-    float mouseY = lookInput.y * mouseSensitivity * 100f * Time.deltaTime;
-
-    // Vertical look
-    xRotation -= mouseY;
-    xRotation = Mathf.Clamp(xRotation, -85f, 85f);
-
-    // Horizontal look
-    yRotation += mouseX;
-    transform.rotation = Quaternion.Euler(0f, yRotation, 0f);
-
-    // ---- CAMERA SWAY ----
-    bool sliding = boostActive || currentControl < 1f;
-
-    if (sliding)
     {
-        float lateral = Vector3.Dot(momentumDirection, transform.right);
-        targetSway = -lateral * slideSwayAmount;
-    }
-    else
-    {
-        targetSway = 0f;
-    }
+        float mouseX = lookInput.x * mouseSensitivity * 100f * Time.deltaTime;
+        float mouseY = lookInput.y * mouseSensitivity * 100f * Time.deltaTime;
 
-    currentSway = Mathf.Lerp(
-        currentSway,
-        targetSway,
-        slideSwaySpeed * Time.deltaTime
-    );
+        // Vertical look
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -85f, 85f);
 
-    cameraPivot.localRotation =
-        Quaternion.Euler(xRotation, 0f, currentSway);
-}
+        // Horizontal look
+        yRotation += mouseX;
+        transform.rotation = Quaternion.Euler(0f, yRotation, 0f);
+
+        // ---- CAMERA SWAY ----
+        bool sliding = boostActive || currentControl < 1f;
+
+        if (sliding)
+        {
+            float lateral = Vector3.Dot(momentumDirection, transform.right);
+            targetSway = -lateral * slideSwayAmount;
+        }
+        else
+        {
+            targetSway = 0f;
+        }
+
+        currentSway = Mathf.Lerp(
+            currentSway,
+            targetSway,
+            slideSwaySpeed * Time.deltaTime
+        );
+
+        cameraPivot.localRotation =
+            Quaternion.Euler(xRotation, 0f, currentSway);
+    }
 
 
     // ---------- STAMINA ----------
@@ -320,6 +350,31 @@ public class PlayerMovementController : MonoBehaviour
         }
     }
 
+    //---------- GROUND CHECK ----------
+    void CheckGrounded()
+    {
+        Vector3 origin = transform.position + Vector3.up * 0.1f;
+        float radius = 0.25f;
+
+        bool wasGrounded = isGrounded;
+
+        isGrounded = Physics.SphereCast(
+            origin,
+            radius,
+            Vector3.down,
+            out _,
+            groundCheckDistance,
+            groundLayer
+        );
+
+        if (!wasGrounded && isGrounded)
+        {
+            isJumping = false; // landed
+        }
+    }
+
+
+
     // ---------- ANIMATION ----------
     void UpdateAnimator()
     {
@@ -337,6 +392,6 @@ public class PlayerMovementController : MonoBehaviour
         );
     }
 
- 
+
 
 }

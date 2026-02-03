@@ -74,18 +74,17 @@ public class EnemyMeleeAI : MonoBehaviour
 
     void Attack()
     {
-        attackTimer -= Time.fixedDeltaTime;
-
-        if (attackTimer > 0f)
+        if (Time.time - attackTimer < attackCooldown)
             return;
 
-        attackTimer = attackCooldown;
+        attackTimer = Time.time;
 
-        // Deal damage
-        playerHealth.TakeDamage(attackDamage);
+        if (playerHealth != null && !playerHealth.IsDead)
+        {
+            playerHealth.TakeDamage(attackDamage);
+            Debug.Log("Player hit by melee enemy!");
+        }
 
-        // Optional debug
-        Debug.Log("Enemy attacked player!");
     }
 
     void OnDrawGizmosSelected()
@@ -95,6 +94,12 @@ public class EnemyMeleeAI : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+    }
+
+    public bool CanBeFedOn()
+    {
+        // Feedable if below 50% health
+        return myHealth != null && !myHealth.IsDead && myHealth.currentHealth <= myHealth.maxHealth * 0.5f;
     }
 }
 

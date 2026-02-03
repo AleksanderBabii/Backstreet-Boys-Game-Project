@@ -9,24 +9,33 @@ public class PlayerHealthUI : MonoBehaviour
     public float pulseScaleAmount = 0.1f;
     public Color lowHealthColor = Color.red;
 
+    [Header("References")]
+    public Health playerHealth;
+    public Image fillImage;
+
     RectTransform rectTransform;
     Color originalColor;
     bool lowHealthActive;
 
-    // Reference to the player's health component
-    public Health playerHealth;
-    public Image fillImage;
-
-    void Start()
+  void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
+    }
+    void Start()
+    {
+        Debug.Log("PlayerHealthUI listening to: " + playerHealth.gameObject.name);
+
+        if (!playerHealth || !fillImage)
+        {
+            Debug.LogError("PlayerHealthUI missing references!");
+            enabled = false;
+            return;
+        }
+
         originalColor = fillImage.color;
 
-        if (playerHealth != null)
-        {
-            playerHealth.OnHealthChanged += UpdateHealthBar;
-            UpdateHealthBar(playerHealth.currentHealth);
-        }
+        playerHealth.OnHealthChanged += UpdateHealthBar;
+        UpdateHealthBar(playerHealth.currentHealth);
     }
 
     void OnDestroy()
@@ -41,26 +50,21 @@ public class PlayerHealthUI : MonoBehaviour
         fillImage.fillAmount = percent;
 
         lowHealthActive = percent <= lowHealthThreshold;
-        if (lowHealthActive)
+
+        if (!lowHealthActive)
         {
-            rectTransform.localScale = Vector3.one;
-            fillImage.color = lowHealthColor;
+             rectTransform.localScale = Vector3.one;
+            fillImage.color = originalColor;
         }
     }
 
     void Update()
     {
-        if (!lowHealthActive)
-            return;
+        if (!lowHealthActive) return;
 
-        float pulse = Mathf.Sin(Time.time * pulseSpeed) * pulseScaleAmount;
+        float pulse = Mathf.Abs(Mathf.Sin(Time.time * pulseSpeed));
+        rectTransform.localScale = Vector3.one + Vector3.one * pulse * pulseScaleAmount;
 
-        rectTransform.localScale = Vector3.one + Vector3.one * pulse;
-        fillImage.color = Color.Lerp(
-            originalColor,
-            lowHealthColor,
-            Mathf.Abs(pulse)
-        );
+        fillImage.color = Color.Lerp(originalColor, lowHealthColor, pulse);
     }
 }
-

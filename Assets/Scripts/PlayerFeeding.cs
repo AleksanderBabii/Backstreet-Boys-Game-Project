@@ -23,57 +23,48 @@ public class PlayerFeeding : MonoBehaviour
     {
         if (!value.isPressed) return;
 
-        Collider[] hits = Physics.OverlapSphere(
-            transform.position,
-            feedRange,
-            enemyLayer
-        );
+        Collider[] hits = Physics.OverlapSphere(transform.position, feedRange, enemyLayer);
 
         foreach (Collider hit in hits)
         {
-            Enemy enemy = hit.GetComponent<Enemy>();
             Health enemyHealth = hit.GetComponent<Health>();
+            EnemyMeleeAI enemyAI = hit.GetComponent<EnemyMeleeAI>();
 
-            if (enemy != null && enemyHealth != null && enemy.CanBeFedOn())
-            {
-                // Drain enemy
-                enemyHealth.TakeDamage(feedDamage);
+            if (enemyHealth == null || enemyAI == null) continue;
+            if (!enemyAI.CanBeFedOn() || enemyHealth.IsDead) continue;
 
-                // Heal player
-                playerHealth.Heal(healAmount);
+            // Drain enemy
+            enemyHealth.TakeDamage(feedDamage);
 
-                // Optional: effects
-                Debug.Log("FEEDING!");
+            // Heal player
+            playerHealth.Heal(healAmount);
 
-                break;
-            }
+            Debug.Log("FEEDING!");
+            break;
         }
     }
+
     void Update()
     {
         bool canFeed = false;
-
-        Collider[] hits = Physics.OverlapSphere(
-            transform.position,
-            feedRange,
-            enemyLayer
-        );
+        Collider[] hits = Physics.OverlapSphere(transform.position, feedRange, enemyLayer);
 
         foreach (Collider hit in hits)
         {
-            Enemy enemy = hit.GetComponent<Enemy>();
+            EnemyMeleeAI enemyAI = hit.GetComponent<EnemyMeleeAI>();
+            Health enemyHealth = hit.GetComponent<Health>();
 
-            if (enemy != null && enemy.CanBeFedOn())
+            if (enemyAI != null && enemyHealth != null && !enemyHealth.IsDead && enemyAI.CanBeFedOn())
             {
                 canFeed = true;
                 break;
             }
         }
 
-        if (canFeed)
-            feedPrompt.Show();
-        else
-            feedPrompt.Hide();
+        if (feedPrompt != null)
+        {
+            if (canFeed) feedPrompt.Show();
+            else feedPrompt.Hide();
+        }
     }
 }
-

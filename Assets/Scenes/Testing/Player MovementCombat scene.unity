@@ -497,6 +497,7 @@ MonoBehaviour:
   maxWidth: 100
   height: 100
   healthBarTransform: {fileID: 1051816934}
+  bloodEffect: {fileID: 1580094829}
 --- !u!114 &1330914585
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1063,6 +1064,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MeleeEnemy
       objectReference: {fileID: 0}
+    - target: {fileID: 5018139790107826796, guid: 168b87eaf5ae24d42b770cbc584f5076, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: f22b53f0f0c885a4f8d8bb40bde3a153, type: 2}
     - target: {fileID: 8018524921609385518, guid: 168b87eaf5ae24d42b770cbc584f5076, type: 3}
       propertyPath: m_LocalPosition.x
       value: -11.934474

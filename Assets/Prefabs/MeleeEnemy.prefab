@@ -82,6 +82,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
+  playerHealthUI: {fileID: 0}
 --- !u!114 &8411869423279856912
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -95,13 +96,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeAI
   detectionRange: 3
-  attackRange: 0.82
+  attackRange: 1
   moveSpeed: 2
   rotationSpeed: 5
-  attackDamage: 10
-  attackCooldown: 5
-  player: {fileID: 0}
-  playerHealth: {fileID: 0}
+  attackDamage: 25
+  attackCooldown: 1
+  isAttacking: 0
 --- !u!54 &8032601428495833180
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -3,18 +3,28 @@ using System;
 
 public class Health : MonoBehaviour, IDamageable
 {
+    [Header("Health Settings")]
     public float maxHealth = 100f;
     public float currentHealth { get; private set; }
-
     public bool IsDead { get; private set; }
-
     public event Action<float> OnHealthChanged;
     public event Action OnDeath;
+
+    [SerializeField]
+    private PlayerHealthUI playerHealthUI;
+    private EnemyMeleeAI enemyAI;
+
 
     void Awake()
     {
         currentHealth = maxHealth;
         IsDead = false;
+
+        if (playerHealthUI != null)
+        {
+            playerHealthUI.SetMaxHealth(maxHealth);
+        }
+        enemyAI = GetComponent<EnemyMeleeAI>();
     }
 
     public void TakeDamage(float amount)
@@ -23,15 +33,28 @@ public class Health : MonoBehaviour, IDamageable
 
         if (IsDead) return;
 
-        currentHealth -= amount;
+        currentHealth -= amount; //
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
         Debug.Log($"Current HP: {currentHealth}");
 
+        if (playerHealthUI != null)
+        {
+            playerHealthUI.SetHealth(currentHealth);
+        }
         OnHealthChanged?.Invoke(currentHealth);
 
         if (currentHealth <= 0f)
             Die();
+    }
+    void Update()
+    {
+        if (enemyAI != null && enemyAI.isAttacking)
+        {
+            // Reset attacking state after applying damage
+            enemyAI.isAttacking = false;
+        }
+        
     }
 
 
@@ -42,6 +65,10 @@ public class Health : MonoBehaviour, IDamageable
         currentHealth += amount;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
+        if (playerHealthUI != null)
+        {
+            playerHealthUI.SetHealth(currentHealth);
+        }
         OnHealthChanged?.Invoke(currentHealth);
     }
 

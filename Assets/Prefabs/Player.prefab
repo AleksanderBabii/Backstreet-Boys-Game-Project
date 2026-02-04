@@ -107,7 +107,6 @@ GameObject:
   - component: {fileID: 7634628543062198493}
   - component: {fileID: 7522519686235008036}
   - component: {fileID: 8856982641875821391}
-  - component: {fileID: 3348417138677967070}
   - component: {fileID: 3922245885543847171}
   m_Layer: 6
   m_Name: Player
@@ -272,22 +271,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
---- !u!114 &3348417138677967070
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6027612295538864706}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62b6a23c534a4834c8ac1d332b582c12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthVisuals
-  bloodEffect: {fileID: 0}
-  pulseThreshold: 0.5
-  pulseSpeed: 2
-  pulseStrength: 0.2
+  playerHealthUI: {fileID: 0}
 --- !u!114 &3922245885543847171
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ public class EnemyMeleeAI : MonoBehaviour
     [Header("Attack")]
     public float attackDamage = 15f;
     public float attackCooldown = 1.2f;
+    public bool isAttacking = false;
 
     Transform player;
     Health playerHealth;
@@ -74,12 +75,14 @@ public class EnemyMeleeAI : MonoBehaviour
 
     void Attack()
     {
-        if (Time.time - attackTimer < attackCooldown)
+        if (Time.time - attackTimer < attackCooldown) // Cooldown check
             return;
 
-        attackTimer = Time.time;
+        attackTimer = Time.time; // Reset cooldown timer
+        
+        isAttacking = true; // Set attacking state
 
-        if (playerHealth != null && !playerHealth.IsDead)
+        if (playerHealth != null && !playerHealth.IsDead && isAttacking == true) // Apply damage
         {
             playerHealth.TakeDamage(attackDamage);
             Debug.Log("Player hit by melee enemy!");

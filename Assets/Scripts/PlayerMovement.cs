@@ -23,10 +23,10 @@ public class PlayerMovementController : MonoBehaviour
     // ---------- Mouse Look Variables ----------
 
     [Header("Mouse Look")]
-    public float mouseSensitivity = 2f;
+    public float mouseSensitivity = 0.5f;
     public Transform cameraPivot;
-    public float slideSwayAmount = 6f;
     public float slideSwaySpeed = 8f;
+    public float bodyRotationSpeed = 8f;
     float currentSway = 0f;
     float targetSway = 0f;
 
@@ -82,24 +82,21 @@ public class PlayerMovementController : MonoBehaviour
 
     // ---------- INTERNAL STATE ----------
     CapsuleCollider capsule;
-    float currentControl = 1f;
-    float targetControl = 1f;
-    float speedFactor;
     bool isMoving;
     bool isSprinting;
     Vector2 moveInput;
     Vector2 lookInput;
     Vector3 momentumDirection;
-    Animator anim;
     Rigidbody rb;
+    PlayerAnimController playerAnimController;
 
     // ---------- LIFE CYCLE ----------
     void Start()
     {
         currentStamina = maxStamina;
         playerSpeed = walkSpeed;
-        anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+        playerAnimController = GetComponent<PlayerAnimController>();
 
         rb.freezeRotation = true;
 
@@ -107,6 +104,44 @@ public class PlayerMovementController : MonoBehaviour
         Cursor.visible = false;
         capsule = GetComponent<CapsuleCollider>();
         capsule.material = normalMaterial;
+
+        // Find CameraPivot - check parent first (if script is on root and CameraPivot is on Player_Vamp)
+        if (cameraPivot == null && transform.parent != null)
+        {
+            cameraPivot = transform.parent.Find("CameraPivot");
+        }
+        
+        // Otherwise check as direct child
+        if (cameraPivot == null)
+        {
+            cameraPivot = transform.Find("CameraPivot");
+        }
+
+        // Find spine_01 and parent cameraPivot to it
+        Transform spine = transform.Find("spine_01");
+        if (spine == null)
+        {
+            // Try to find it through pelvis
+            Transform pelvis = transform.Find("pelvis");
+            if (pelvis != null)
+            {
+                spine = pelvis.Find("spine_01");
+            }
+        }
+
+        // Parent cameraPivot to spine_01 if spine exists
+        if (spine != null && cameraPivot != null)
+        {
+            cameraPivot.SetParent(spine);
+            // Reset local position to avoid jumping
+            if (cameraPivot.localPosition == Vector3.zero)
+            {
+                cameraPivot.localPosition = new Vector3(0, 0.6f, 0.1f); // Adjust based on your spine size
+            }
+        }
+
+        // Initialize rotation to current facing to prevent snapping
+        yRotation = transform.eulerAngles.y;
     }
 
     // ---------- INPUT ----------
@@ -117,9 +152,15 @@ public class PlayerMovementController : MonoBehaviour
 
         if (moveInput.magnitude > 0.1f)
         {
+            Vector3 forward = cameraPivot.forward;
+            forward.y = 0;
+            forward.Normalize();
+            Vector3 right = cameraPivot.right;
+            right.y = 0;
+            right.Normalize();
             momentumDirection =
-                (transform.right * moveInput.x +
-                 transform.forward * moveInput.y).normalized;
+                (right * moveInput.x +
+                 forward * moveInput.y).normalized;
         }
     }
 
@@ -158,7 +199,7 @@ public class PlayerMovementController : MonoBehaviour
         lastJumpTime = Time.time;
         isJumping = true;
 
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
     }
 
@@ -171,12 +212,8 @@ public class PlayerMovementController : MonoBehaviour
 
         boostTimer = duration;
         boostActive = true;
-
-        //Slippery effect when boosted
-        capsule.material = slipperyMaterial;
-        currentControl = slipperyControl;
-        targetControl = slipperyControl;
     }
+
     // ---------- GET BOOST MULTIPLIER ----------
     float GetBoostMultiplier()
     {
@@ -188,9 +225,6 @@ public class PlayerMovementController : MonoBehaviour
         if (boostTimer <= 0f)
         {
             boostActive = false;
-
-            // Start recovering from slippery effect
-            targetControl = 1f;
 
             //restore friction immediately
             capsule.material = normalMaterial;
@@ -210,19 +244,23 @@ public class PlayerMovementController : MonoBehaviour
         momentumDirection = transform.forward;
 
     //currwent horizontal velocity
-    Vector3 currentVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+    Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
     float currentSpeed = currentVelocity.magnitude;
 
-    // Stronger slide at higher speed
-    speedFactor = Mathf.Lerp(1f, highSpeedSlipMultiplier, currentSpeed / maxSlideSpeed);
-    
-    float effectiveControl = currentControl * speedFactor;
+    float effectiveControl = 1f;
 
     bool hasInput = moveInput.magnitude > 0.1f;
 
+    Vector3 forward = cameraPivot.forward;
+    forward.y = 0;
+    forward.Normalize();
+    Vector3 right = cameraPivot.right;
+    right.y = 0;
+    right.Normalize();
+
     // Desired movement direction
     Vector3 desiredDirection = hasInput
-        ? (transform.right * moveInput.x + transform.forward * moveInput.y)
+        ? (right * moveInput.x + forward * moveInput.y)
         : momentumDirection;
 
     // Angular inertia
@@ -248,9 +286,9 @@ public class PlayerMovementController : MonoBehaviour
     // ONLY control horizontal movement when grounded
     if (isGrounded)
     {
-        rb.velocity = new Vector3(
+        rb.linearVelocity = new Vector3(
             finalVelocity.x,
-            rb.velocity.y,
+            rb.linearVelocity.y,
             finalVelocity.z
         );
     }
@@ -267,12 +305,7 @@ public class PlayerMovementController : MonoBehaviour
         HandleStamina();
         UpdateAnimator();
 
-        currentControl = Mathf.MoveTowards(
-            currentControl,
-            targetControl,
-            slipperyRecoverySpeed * Time.deltaTime);
-
-        float speed = rb.velocity.magnitude;
+        float speed = rb.linearVelocity.magnitude;
 
         if (speed > maxSlideSpeed * 0.8f)
         {
@@ -283,29 +316,22 @@ public class PlayerMovementController : MonoBehaviour
     // ---------- CAMERA ----------
     void HandleCamera()
     {
-        float mouseX = lookInput.x * mouseSensitivity * 100f * Time.deltaTime;
-        float mouseY = lookInput.y * mouseSensitivity * 100f * Time.deltaTime;
+        float mouseX = lookInput.x * mouseSensitivity;
+        float mouseY = lookInput.y * mouseSensitivity;
 
         // Vertical look
         xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -85f, 85f);
+        xRotation = Mathf.Clamp(xRotation, -60f, 60f);
 
         // Horizontal look
         yRotation += mouseX;
-        transform.rotation = Quaternion.Euler(0f, yRotation, 0f);
+        
+        // Smoothly rotate player body to follow camera Y-axis for natural turning
+        Quaternion targetRotation = Quaternion.Euler(0f, yRotation, 0f);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, bodyRotationSpeed * Time.deltaTime);
 
         // ---- CAMERA SWAY ----
-        bool sliding = boostActive || currentControl < 1f;
-
-        if (sliding)
-        {
-            float lateral = Vector3.Dot(momentumDirection, transform.right);
-            targetSway = -lateral * slideSwayAmount;
-        }
-        else
-        {
-            targetSway = 0f;
-        }
+        targetSway = 0f;
 
         currentSway = Mathf.Lerp(
             currentSway,
@@ -313,8 +339,12 @@ public class PlayerMovementController : MonoBehaviour
             slideSwaySpeed * Time.deltaTime
         );
 
+        // Compensate for body rotation so camera looks exactly where intended
+        float parentY = cameraPivot.parent != null ? cameraPivot.parent.eulerAngles.y : 0f;
+        float localY = Mathf.DeltaAngle(parentY, yRotation);
+
         cameraPivot.localRotation =
-            Quaternion.Euler(xRotation, 0f, currentSway);
+            Quaternion.Euler(xRotation, localY, currentSway);
     }
 
 
@@ -353,19 +383,28 @@ public class PlayerMovementController : MonoBehaviour
     //---------- GROUND CHECK ----------
     void CheckGrounded()
     {
-        Vector3 origin = transform.position + Vector3.up * 0.1f;
-        float radius = 0.25f;
+        if (capsule == null) capsule = GetComponent<CapsuleCollider>();
 
         bool wasGrounded = isGrounded;
 
-        isGrounded = Physics.SphereCast(
-            origin,
-            radius,
-            Vector3.down,
-            out _,
-            groundCheckDistance,
-            groundLayer
-        );
+        // compute feet position from capsule
+        Vector3 worldCenter = transform.TransformPoint(capsule.center);
+        float sphereRadius = capsule.radius * 0.9f;
+        Vector3 feetPos = worldCenter - transform.up * (capsule.height * 0.5f - capsule.radius);
+
+        // Overlap sphere at feet to detect ground colliders on the specified layer
+        Collider[] hits = Physics.OverlapSphere(feetPos, sphereRadius, groundLayer);
+        isGrounded = (hits != null && hits.Length > 0);
+
+        // Fallback: raycast downward from center if overlap didn't find anything
+        RaycastHit rayHit = default;
+        if (!isGrounded)
+        {
+            isGrounded = Physics.Raycast(worldCenter, Vector3.down, out rayHit, groundCheckDistance + 0.1f);
+        }
+
+        Debug.DrawLine(worldCenter, feetPos, isGrounded ? Color.green : Color.red);
+        Debug.Log($"Ground Check - Feet: {feetPos}, Grounded: {isGrounded}, OverlapHits: {(hits!=null?hits.Length:0)}, RayHit: {(rayHit.collider? rayHit.collider.name : "None")}");
 
         if (!wasGrounded && isGrounded)
         {
@@ -378,8 +417,45 @@ public class PlayerMovementController : MonoBehaviour
     // ---------- ANIMATION ----------
     void UpdateAnimator()
     {
-        anim.SetBool("isMoving", isMoving);
-        anim.SetBool("isSprinting", isSprinting && canSprint && isMoving);
+        // Calculate movement speed for blend tree transitions (0 = idle, 1 = running)
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        float currentSpeed = horizontalVelocity.magnitude;
+        float velocityBased = Mathf.Clamp01(currentSpeed / (playerSpeed * 1.5f));
+
+        bool hasInput = moveInput.magnitude > 0.1f;
+        // If player has fresh input, drive animations from input/sprint state for snappy response
+        float animatorSpeed;
+        if (hasInput)
+        {
+            animatorSpeed = (isSprinting && canSprint) ? 1f : 0.5f; // 0.5 = walk, 1 = run
+        }
+        else
+        {
+            animatorSpeed = velocityBased;
+        }
+
+        // Update movement speed for blend trees
+        playerAnimController.SetMovementSpeed(animatorSpeed);
+
+        // Update directional movement input for 2D blend tree
+        float sendMoveX = moveInput.x;
+        float sendMoveY = moveInput.y;
+        // If raw input is zero, use momentumDirection so animator still sees movement direction
+        if (Mathf.Abs(sendMoveX) < 0.01f && Mathf.Abs(sendMoveY) < 0.01f)
+        {
+            Vector3 localMomentum = transform.InverseTransformDirection(momentumDirection);
+            sendMoveX = Mathf.Clamp(localMomentum.x, -1f, 1f);
+            sendMoveY = Mathf.Clamp(localMomentum.z, -1f, 1f);
+        }
+
+        playerAnimController.SetMovementX(sendMoveX);
+        playerAnimController.SetMovementY(sendMoveY);
+
+        // Debug: show animator input values when there's movement or input
+        if (animatorSpeed > 0.01f || hasInput)
+        {
+            Debug.Log($"Animator Inputs - animatorSpeed: {animatorSpeed:F2}, velocityBased: {velocityBased:F2}, moveInput: {moveInput}");
+        }
     }
 
     // ---------- DEBUG ----------

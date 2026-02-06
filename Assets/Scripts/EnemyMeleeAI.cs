@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class EnemyMeleeAI : MonoBehaviour
 {
@@ -18,6 +19,8 @@ public class EnemyMeleeAI : MonoBehaviour
     public bool isAttacking = false;
     private bool hasDealtDamageThisAttack = false;
 
+    [Header("Loot")]
+    public GameObject heartPrefab;
     
 
     Transform player;
@@ -35,6 +38,9 @@ public class EnemyMeleeAI : MonoBehaviour
         player = GameObject.FindGameObjectWithTag("Player").transform;
         playerHealth = player.GetComponent<Health>();
         myHealth = GetComponent<Health>();
+        if (myHealth != null)
+            myHealth.OnDeath += HandleDeath;
+
         rb = GetComponent<Rigidbody>();
         enemyAnimController = GetComponent<EnemyAIAnimController>();
     }
@@ -125,5 +131,26 @@ public class EnemyMeleeAI : MonoBehaviour
     {
         // Feedable if below 50% health
         return myHealth != null && !myHealth.IsDead && myHealth.currentHealth <= myHealth.maxHealth * 0.5f;
+    }
+
+    void OnDestroy()
+    {
+        if (myHealth != null)
+            myHealth.OnDeath -= HandleDeath;
+    }
+
+    void HandleDeath()
+    {
+        if (enemyAnimController != null)
+            enemyAnimController.Die();
+        
+        StartCoroutine(DropHeart());
+    }
+
+    IEnumerator DropHeart()
+    {
+        yield return new WaitForSeconds(1.5f); // Wait for animation to finish
+        if (heartPrefab != null)
+            Instantiate(heartPrefab, transform.position + Vector3.up * 0.5f, Quaternion.identity);
     }
 }

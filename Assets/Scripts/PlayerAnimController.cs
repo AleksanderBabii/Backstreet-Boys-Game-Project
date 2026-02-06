@@ -4,11 +4,11 @@ public class PlayerAnimController : MonoBehaviour
 {
     [Header("Animation")]
     public Animator playerAnimator;
-    
+
     [Header("Movement Parameters")]
     public float walkThreshold = 0.3f;  // Below this = Idle
     public float runThreshold = 0.7f;   // Above this = Run
-    
+
     [Header("Attack Timing")]
     public float swordAttackDamageTime = 0.5f;
     public float gunAttackDamageTime = 0.4f;
@@ -18,6 +18,10 @@ public class PlayerAnimController : MonoBehaviour
     private bool hasDealtGunDamageThisAttack = false;
     private float previousSwordNormalizedTime = 0f;
     private float previousGunNormalizedTime = 0f;
+
+    private float lastSwordAttackTime = -1f;
+    private float lastGunAttackTime = -1f;
+    private const float AttackInputDuration = 0.1f;
 
     void Start()
     {
@@ -44,6 +48,11 @@ public class PlayerAnimController : MonoBehaviour
     {
         CheckSwordAttackDamage();
         CheckGunAttackDamage();
+
+        if (Time.time >= lastSwordAttackTime + AttackInputDuration)
+            playerAnimator.SetBool("isSwordAttacking", false);
+        if (Time.time >= lastGunAttackTime + AttackInputDuration)
+            playerAnimator.SetBool("isGunShooting", false);
     }
 
     void CheckSwordAttackDamage()
@@ -74,9 +83,6 @@ public class PlayerAnimController : MonoBehaviour
         {
             hasDealtSwordDamageThisAttack = false;
             previousSwordNormalizedTime = 0f;
-            // Ensure animator exits sword attack state when not playing
-            if (playerAnimator.GetBool("isSwordAttacking"))
-                playerAnimator.SetBool("isSwordAttacking", false);
         }
     }
 
@@ -108,9 +114,6 @@ public class PlayerAnimController : MonoBehaviour
         {
             hasDealtGunDamageThisAttack = false;
             previousGunNormalizedTime = 0f;
-            // Ensure animator exits gun shoot state when not playing
-            if (playerAnimator.GetBool("isGunShooting"))
-                playerAnimator.SetBool("isGunShooting", false);
         }
     }
 
@@ -145,6 +148,7 @@ public class PlayerAnimController : MonoBehaviour
     {
         playerAnimator.SetBool("isSwordAttacking", true);
         playerAnimator.SetBool("isGunShooting", false);
+        lastSwordAttackTime = Time.time;
     }
 
     /// <summary>
@@ -154,6 +158,7 @@ public class PlayerAnimController : MonoBehaviour
     {
         playerAnimator.SetBool("isGunShooting", true);
         playerAnimator.SetBool("isSwordAttacking", false);
+        lastGunAttackTime = Time.time;
     }
 
     /// <summary>
@@ -163,5 +168,20 @@ public class PlayerAnimController : MonoBehaviour
     {
         playerAnimator.SetBool("isSwordAttacking", false);
         playerAnimator.SetBool("isGunShooting", false);
+    }
+
+    public void Jump()
+    {
+        playerAnimator.SetTrigger("Jump");
+    }
+
+    public void SetGrounded(bool isGrounded)
+    {
+        playerAnimator.SetBool("isGrounded", isGrounded);
+    }
+
+    public void Die()
+    {
+        playerAnimator.SetTrigger("Die");
     }
 }

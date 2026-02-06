@@ -536,9 +536,6 @@ PrefabInstance:
       addedObject: {fileID: 3092658765130873041}
     - targetCorrespondingSourceObject: {fileID: 3199775321199793454, guid: 1d0d801edf2fbcd4aa2e4fc31dec08b6, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1822131750733534926}
-    - targetCorrespondingSourceObject: {fileID: 3199775321199793454, guid: 1d0d801edf2fbcd4aa2e4fc31dec08b6, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 2905899578317617326}
   m_SourcePrefab: {fileID: 100100000, guid: 1d0d801edf2fbcd4aa2e4fc31dec08b6, type: 3}
 --- !u!1 &6771065473490791073 stripped
@@ -638,16 +635,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca219c45aad4aeb40b0e52d5e29fa68e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovementController
+  groundDrag: 5
   walkSpeed: 2
   sprintSpeed: 4
   jumpForce: 5
+  airControl: 0.1
   groundCheckDistance: 5
   groundLayer:
     serializedVersion: 2
     m_Bits: 128
   mouseSensitivity: 0.5
   cameraPivot: {fileID: 8327507877758347983}
-  slideSwaySpeed: 8
   bodyRotationSpeed: 8
   maxStamina: 100
   staminaDrainRate: 25
@@ -724,22 +722,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   feedPrompt: {fileID: 0}
---- !u!114 &1822131750733534926
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6771065473490791073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c114f839db5affb4e8dbcb52738322e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthUI
-  maxWidth: 100
-  height: 100
-  healthBarTransform: {fileID: 0}
-  bloodEffect: {fileID: 0}
 --- !u!114 &2905899578317617326
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -753,7 +735,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
-  playerHealthUI: {fileID: 1822131750733534926}
+  playerHealthUI: {fileID: 0}
 --- !u!95 &6771065473498208487 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 3199775321209284456, guid: 1d0d801edf2fbcd4aa2e4fc31dec08b6, type: 3}

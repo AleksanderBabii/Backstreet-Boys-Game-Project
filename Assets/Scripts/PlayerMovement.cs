@@ -5,6 +5,7 @@ public class PlayerMovementController : MonoBehaviour
 {
     // ---------- Movement Variables ----------
     [Header("Movement")]
+    public float groundDrag = 5f;
     public float walkSpeed = 2f;
     public float sprintSpeed = 4f;
     float playerSpeed;
@@ -12,6 +13,7 @@ public class PlayerMovementController : MonoBehaviour
     // ---------- Jumping Variables ----------
     [Header("Jumping")]
     public float jumpForce = 5f;
+    public float airControl = 0.1f;
     public float groundCheckDistance = 0.5f;
     public LayerMask groundLayer;
     bool isGrounded;
@@ -25,10 +27,7 @@ public class PlayerMovementController : MonoBehaviour
     [Header("Mouse Look")]
     public float mouseSensitivity = 0.5f;
     public Transform cameraPivot;
-    public float slideSwaySpeed = 8f;
     public float bodyRotationSpeed = 8f;
-    float currentSway = 0f;
-    float targetSway = 0f;
 
     float xRotation = 0f;   // vertical
     float yRotation = 0f;   // horizontal
@@ -86,6 +85,7 @@ public class PlayerMovementController : MonoBehaviour
     bool isSprinting;
     Vector2 moveInput;
     Vector2 lookInput;
+    private bool m_IsOnSlipperySurface;
     Vector3 momentumDirection;
     Rigidbody rb;
     PlayerAnimController playerAnimController;
@@ -133,11 +133,8 @@ public class PlayerMovementController : MonoBehaviour
         if (spine != null && cameraPivot != null)
         {
             cameraPivot.SetParent(spine);
-            // Reset local position to avoid jumping
-            if (cameraPivot.localPosition == Vector3.zero)
-            {
-                cameraPivot.localPosition = new Vector3(0, 0.6f, 0.1f); // Adjust based on your spine size
-            }
+            // Reset local position to a sensible default to avoid camera jumping
+            cameraPivot.localPosition = new Vector3(0, 0.6f, 0.1f); // Adjust based on your spine size
         }
 
         // Initialize rotation to current facing to prevent snapping
@@ -149,19 +146,6 @@ public class PlayerMovementController : MonoBehaviour
     public void OnMove(InputValue value)
     {
         moveInput = value.Get<Vector2>();
-
-        if (moveInput.magnitude > 0.1f)
-        {
-            Vector3 forward = cameraPivot.forward;
-            forward.y = 0;
-            forward.Normalize();
-            Vector3 right = cameraPivot.right;
-            right.y = 0;
-            right.Normalize();
-            momentumDirection =
-                (right * moveInput.x +
-                 forward * moveInput.y).normalized;
-        }
     }
 
     public void OnLook(InputValue value)
@@ -182,10 +166,8 @@ public class PlayerMovementController : MonoBehaviour
         playerSpeed = walkSpeed;
     }
 
-    [System.Obsolete]
     public void OnJump(InputValue value)
     {
-        Debug.Log("Jump input received: " + value.isPressed);
 
         if (!value.isPressed)
             return;
@@ -198,6 +180,7 @@ public class PlayerMovementController : MonoBehaviour
 
         lastJumpTime = Time.time;
         isJumping = true;
+        playerAnimController.Jump();
 
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
@@ -235,70 +218,85 @@ public class PlayerMovementController : MonoBehaviour
 
     // ---------- MOVEMENT ----------
 
-    [System.Obsolete]
     void FixedUpdate()
-{
-    CheckGrounded();
-    //Fallnack direction
-    if (momentumDirection == Vector3.zero)
-        momentumDirection = transform.forward;
-
-    //currwent horizontal velocity
-    Vector3 currentVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-    float currentSpeed = currentVelocity.magnitude;
-
-    float effectiveControl = 1f;
-
-    bool hasInput = moveInput.magnitude > 0.1f;
-
-    Vector3 forward = cameraPivot.forward;
-    forward.y = 0;
-    forward.Normalize();
-    Vector3 right = cameraPivot.right;
-    right.y = 0;
-    right.Normalize();
-
-    // Desired movement direction
-    Vector3 desiredDirection = hasInput
-        ? (right * moveInput.x + forward * moveInput.y)
-        : momentumDirection;
-
-    // Angular inertia
-    momentumDirection = Vector3.Slerp(
-        momentumDirection,
-        desiredDirection.normalized,
-        effectiveControl * angularInertia * Time.fixedDeltaTime
-    ).normalized;
-
-    float targetSpeed = hasInput ? playerSpeed : currentSpeed;
-
-    float newSpeed = Mathf.Lerp(
-        currentSpeed,
-        targetSpeed,
-        effectiveControl
-    );
-
-    // Clamp to max slide speed
-    newSpeed = Mathf.Clamp(newSpeed, 0f, maxSlideSpeed);
-
-    Vector3 finalVelocity = momentumDirection * newSpeed;
-
-    // ONLY control horizontal movement when grounded
-    if (isGrounded)
     {
-        rb.linearVelocity = new Vector3(
-            finalVelocity.x,
-            rb.linearVelocity.y,
-            finalVelocity.z
-        );
-    }
+        CheckGrounded();
+        // Fallback direction
+        if (momentumDirection == Vector3.zero)
+            momentumDirection = transform.forward;
 
-    isMoving = newSpeed > 0.1f;
-}
+        // current horizontal velocity
+        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        float currentSpeed = currentHorizontalVelocity.magnitude;
+
+        // Determine control and drag based on state
+        float effectiveControl;
+        float currentDrag;
+
+        if (isGrounded)
+        {
+            if (m_IsOnSlipperySurface)
+            {
+                effectiveControl = slipperyControl;
+                currentDrag = slideDrag;
+            }
+            else
+            {
+                effectiveControl = 1f; // Full control on normal ground
+                currentDrag = groundDrag;
+            }
+        }
+        else
+        {
+            effectiveControl = airControl;
+            currentDrag = 0f; // No drag in the air from this system
+        }
+
+        bool hasInput = moveInput.magnitude > 0.1f;
+
+        // Desired movement direction
+        Vector3 forward = cameraPivot.forward;
+        forward.y = 0;
+        forward.Normalize();
+        Vector3 right = cameraPivot.right;
+        right.y = 0;
+        right.Normalize();
+        Vector3 desiredDirection = hasInput
+            ? (right * moveInput.x + forward * moveInput.y).normalized
+            : momentumDirection;
+
+        // Angular inertia
+        momentumDirection = Vector3.Slerp(
+            momentumDirection,
+            desiredDirection,
+            effectiveControl * angularInertia * Time.fixedDeltaTime
+        ).normalized;
+
+        // Determine target speed
+        float targetSpeed;
+        if (hasInput)
+        {
+            targetSpeed = playerSpeed; // playerSpeed already includes boost
+        }
+        else
+        {
+            // Apply drag if on the ground and no input
+            targetSpeed = isGrounded ? Mathf.MoveTowards(currentSpeed, 0, currentDrag * Time.fixedDeltaTime) : currentSpeed;
+        }
+
+        // Smoothly approach target speed
+        float newSpeed = Mathf.Lerp(currentSpeed, targetSpeed, 15f * Time.fixedDeltaTime);
+        newSpeed = Mathf.Clamp(newSpeed, 0f, maxSlideSpeed);
+
+        Vector3 finalVelocity = momentumDirection * newSpeed;
+
+        rb.linearVelocity = new Vector3(finalVelocity.x, rb.linearVelocity.y, finalVelocity.z);
+
+        isMoving = newSpeed > 0.1f;
+    }
 
     // ---------- UPDATE ----------
 
-    [System.Obsolete]
     void Update()
     {
         HandleCamera();
@@ -330,21 +328,12 @@ public class PlayerMovementController : MonoBehaviour
         Quaternion targetRotation = Quaternion.Euler(0f, yRotation, 0f);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, bodyRotationSpeed * Time.deltaTime);
 
-        // ---- CAMERA SWAY ----
-        targetSway = 0f;
-
-        currentSway = Mathf.Lerp(
-            currentSway,
-            targetSway,
-            slideSwaySpeed * Time.deltaTime
-        );
-
         // Compensate for body rotation so camera looks exactly where intended
         float parentY = cameraPivot.parent != null ? cameraPivot.parent.eulerAngles.y : 0f;
         float localY = Mathf.DeltaAngle(parentY, yRotation);
 
         cameraPivot.localRotation =
-            Quaternion.Euler(xRotation, localY, currentSway);
+            Quaternion.Euler(xRotation, localY, 0f);
     }
 
 
@@ -385,26 +374,30 @@ public class PlayerMovementController : MonoBehaviour
     {
         if (capsule == null) capsule = GetComponent<CapsuleCollider>();
 
-        bool wasGrounded = isGrounded;
-
         // compute feet position from capsule
         Vector3 worldCenter = transform.TransformPoint(capsule.center);
-        float sphereRadius = capsule.radius * 0.9f;
-        Vector3 feetPos = worldCenter - transform.up * (capsule.height * 0.5f - capsule.radius);
+        Vector3 feetPos = worldCenter - transform.up * (capsule.height * 0.5f);
 
         // Overlap sphere at feet to detect ground colliders on the specified layer
-        Collider[] hits = Physics.OverlapSphere(feetPos, sphereRadius, groundLayer);
-        isGrounded = (hits != null && hits.Length > 0);
+        Collider[] hits = Physics.OverlapSphere(feetPos, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
+        
+        bool wasGrounded = isGrounded;
+        isGrounded = hits.Length > 0;
+        
+        playerAnimController.SetGrounded(isGrounded);
 
-        // Fallback: raycast downward from center if overlap didn't find anything
-        RaycastHit rayHit = default;
-        if (!isGrounded)
+        m_IsOnSlipperySurface = false;
+        if (isGrounded)
         {
-            isGrounded = Physics.Raycast(worldCenter, Vector3.down, out rayHit, groundCheckDistance + 0.1f);
+            // Check material of the ground
+            PhysicsMaterial groundMaterial = hits[0].sharedMaterial;
+            if (groundMaterial != null && slipperyMaterial != null && groundMaterial.name.Split(' ')[0] == slipperyMaterial.name.Split(' ')[0])
+            {
+                m_IsOnSlipperySurface = true;
+            }
         }
 
-        Debug.DrawLine(worldCenter, feetPos, isGrounded ? Color.green : Color.red);
-        Debug.Log($"Ground Check - Feet: {feetPos}, Grounded: {isGrounded}, OverlapHits: {(hits!=null?hits.Length:0)}, RayHit: {(rayHit.collider? rayHit.collider.name : "None")}");
+        capsule.material = m_IsOnSlipperySurface ? slipperyMaterial : normalMaterial;
 
         if (!wasGrounded && isGrounded)
         {
@@ -420,7 +413,7 @@ public class PlayerMovementController : MonoBehaviour
         // Calculate movement speed for blend tree transitions (0 = idle, 1 = running)
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         float currentSpeed = horizontalVelocity.magnitude;
-        float velocityBased = Mathf.Clamp01(currentSpeed / (playerSpeed * 1.5f));
+        float velocityBased = Mathf.Clamp01(currentSpeed / (sprintSpeed * 1.5f));
 
         bool hasInput = moveInput.magnitude > 0.1f;
         // If player has fresh input, drive animations from input/sprint state for snappy response
@@ -450,12 +443,6 @@ public class PlayerMovementController : MonoBehaviour
 
         playerAnimController.SetMovementX(sendMoveX);
         playerAnimController.SetMovementY(sendMoveY);
-
-        // Debug: show animator input values when there's movement or input
-        if (animatorSpeed > 0.01f || hasInput)
-        {
-            Debug.Log($"Animator Inputs - animatorSpeed: {animatorSpeed:F2}, velocityBased: {velocityBased:F2}, moveInput: {moveInput}");
-        }
     }
 
     // ---------- DEBUG ----------
@@ -467,7 +454,6 @@ public class PlayerMovementController : MonoBehaviour
             "Stamina"
         );
     }
-
 
 
 }

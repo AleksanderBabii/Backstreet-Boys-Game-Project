@@ -5,6 +5,8 @@ public class PlayerCombat : MonoBehaviour
 {
     [Header("Sword Attack")]
     public GameObject swordObject;
+    public Transform handTransform;
+    public bool hasSword = false;
     public float swordRange = 2f;
     public float swordDamage = 25f;
     public float swordAttackCooldown = 0.8f;
@@ -28,6 +30,8 @@ public class PlayerCombat : MonoBehaviour
 
         if (swordObject == null)
             Debug.LogWarning("Sword object not assigned to PlayerCombat!");
+        else
+            swordObject.SetActive(hasSword);
         if (gunObject == null)
             Debug.LogWarning("Gun object not assigned to PlayerCombat!");
     }
@@ -44,7 +48,7 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public void OnSwordAttack(InputValue value)
     {
-        if (!value.isPressed || playerHealth.IsDead)
+        if (!value.isPressed || playerHealth.IsDead || !hasSword)
             return;
 
         if (swordAttackTimer >= swordAttackCooldown)
@@ -53,6 +57,22 @@ public class PlayerCombat : MonoBehaviour
             swordAttackTimer = 0f;
             Debug.Log("Sword Attack Initiated!");
         }
+    }
+
+    public void PickUpSword()
+    {
+        hasSword = true;
+        if (swordObject != null)
+        {
+            swordObject.SetActive(true);
+            if (handTransform != null)
+            {
+                swordObject.transform.SetParent(handTransform);
+                swordObject.transform.localPosition = Vector3.zero;
+                swordObject.transform.localRotation = Quaternion.identity;
+            }
+        }
+        Debug.Log("Sword picked up!");
     }
 
     /// <summary>

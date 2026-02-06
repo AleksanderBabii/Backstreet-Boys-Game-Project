@@ -97,4 +97,9 @@ public class EnemyAIAnimController : MonoBehaviour
         enemyAnimator.SetBool("isChasing", true);
         enemyAnimator.SetBool("isAttacking", false);
     }
+
+    public void Die()
+    {
+        enemyAnimator.SetTrigger("Die");
+    }
 }

@@ -170,9 +170,9 @@ public class PlayerAnimController : MonoBehaviour
         playerAnimator.SetBool("isGunShooting", false);
     }
 
-    public void Jump()
+    public void SetJumping(bool isJumping)
     {
-        playerAnimator.SetTrigger("Jump");
+        playerAnimator.SetBool("isJumping", isJumping);
     }
 
     public void SetGrounded(bool isGrounded)
@@ -182,6 +182,6 @@ public class PlayerAnimController : MonoBehaviour
 
     public void Die()
     {
-        playerAnimator.SetTrigger("Die");
+        playerAnimator.SetTrigger("isDead");
     }
 }

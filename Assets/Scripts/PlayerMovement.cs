@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovementController : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     // ---------- Movement Variables ----------
     [Header("Movement")]
@@ -12,7 +12,7 @@ public class PlayerMovementController : MonoBehaviour
 
     // ---------- Jumping Variables ----------
     [Header("Jumping")]
-    public float jumpForce = 5f;
+    public float jumpDuration = 0.8f;
     public float airControl = 0.1f;
     public float groundCheckDistance = 0.5f;
     public LayerMask groundLayer;
@@ -139,6 +139,11 @@ public class PlayerMovementController : MonoBehaviour
 
         // Initialize rotation to current facing to prevent snapping
         yRotation = transform.eulerAngles.y;
+
+        if (groundLayer == 0)
+        {
+            Debug.LogWarning("PlayerMovement: Ground Layer is not set! Jumping will not work.");
+        }
     }
 
     // ---------- INPUT ----------
@@ -180,10 +185,13 @@ public class PlayerMovementController : MonoBehaviour
 
         lastJumpTime = Time.time;
         isJumping = true;
-        playerAnimController.Jump();
 
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        
+        // Calculate required velocity to stay in air for jumpDuration: v = (g * t) / 2
+        float gravity = Mathf.Abs(Physics.gravity.y);
+        float jumpVelocity = (gravity * jumpDuration) / 2f;
+        rb.AddForce(Vector3.up * jumpVelocity, ForceMode.VelocityChange);
     }
 
 
@@ -244,6 +252,12 @@ public class PlayerMovementController : MonoBehaviour
             {
                 effectiveControl = 1f; // Full control on normal ground
                 currentDrag = groundDrag;
+
+                // Fix: Apply downward force to prevent flying off slopes when moving fast (Speed Boost)
+                if (!isJumping && rb.linearVelocity.y < 2f)
+                {
+                    rb.AddForce(Vector3.down * 40f, ForceMode.Force);
+                }
             }
         }
         else
@@ -384,7 +398,24 @@ public class PlayerMovementController : MonoBehaviour
         bool wasGrounded = isGrounded;
         isGrounded = hits.Length > 0;
         
-        playerAnimController.SetGrounded(isGrounded);
+        // Reset jumping state if grounded and we're past the initial jump impulse time
+        if (isGrounded && isJumping && Time.time - lastJumpTime > 0.2f)
+        {
+            isJumping = false;
+        }
+
+        // Logic to prevent jump/fall animation while running down slopes or over bumps
+        bool animatorIsGrounded = isGrounded;
+        
+        if (isJumping)
+        {
+            animatorIsGrounded = false;
+        }
+        else if (!isGrounded && Mathf.Abs(rb.linearVelocity.y) < 5f)
+        {
+            animatorIsGrounded = true;
+        }
+        playerAnimController.SetGrounded(animatorIsGrounded);
 
         m_IsOnSlipperySurface = false;
         if (isGrounded)
@@ -398,11 +429,6 @@ public class PlayerMovementController : MonoBehaviour
         }
 
         capsule.material = m_IsOnSlipperySurface ? slipperyMaterial : normalMaterial;
-
-        if (!wasGrounded && isGrounded)
-        {
-            isJumping = false; // landed
-        }
     }
 
 
@@ -443,6 +469,7 @@ public class PlayerMovementController : MonoBehaviour
 
         playerAnimController.SetMovementX(sendMoveX);
         playerAnimController.SetMovementY(sendMoveY);
+        playerAnimController.SetJumping(isJumping);
     }
 
     // ---------- DEBUG ----------

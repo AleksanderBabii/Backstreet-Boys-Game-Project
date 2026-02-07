@@ -2,16 +2,17 @@ using UnityEngine;
 
 public class SpeedBooster : MonoBehaviour
 {
-    private PlayerMovementController player;
+    [Header("Speed Boost Settings")]
+    public float multiplier = 2f;
+    public float duration = 5f;
 
     void OnTriggerEnter(Collider other)
     {
-        PlayerMovementController player =
-            other.GetComponent<PlayerMovementController>();
+        PlayerMovement player = other.GetComponent<PlayerMovement>();
 
         if (player != null)
         {
-            player.ActivateSpeedBoost(player.boostMultiplier, player.boostDuration);
+            player.ActivateSpeedBoost(multiplier, duration);
             Destroy(gameObject);
         }
     }

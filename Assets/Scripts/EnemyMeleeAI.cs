@@ -17,7 +17,6 @@ public class EnemyMeleeAI : MonoBehaviour
     public float attackDamage = 15f;
     public float attackCooldown = 1.2f;
     public bool isAttacking = false;
-    private bool hasDealtDamageThisAttack = false;
 
     [Header("Loot")]
     public GameObject heartPrefab;
@@ -35,8 +34,13 @@ public class EnemyMeleeAI : MonoBehaviour
 
     void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        playerHealth = player.GetComponent<Health>();
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            player = playerObj.transform;
+            playerHealth = player.GetComponent<Health>();
+        }
+
         myHealth = GetComponent<Health>();
         if (myHealth != null)
             myHealth.OnDeath += HandleDeath;
@@ -47,7 +51,7 @@ public class EnemyMeleeAI : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (myHealth.IsDead || playerHealth.IsDead)
+        if (myHealth.IsDead || player == null || (playerHealth != null && playerHealth.IsDead))
             return;
 
         // Calculate distance using the center of the enemy (with offset) to the player
@@ -95,21 +99,23 @@ public class EnemyMeleeAI : MonoBehaviour
 
     void FacePlayer()
     {
-        Vector3 direction = (player.position - transform.position).normalized;
+        Vector3 direction = (player.position - transform.position);
         direction.y = 0f;
 
-        Quaternion targetRotation = Quaternion.LookRotation(direction);
-        transform.rotation = Quaternion.Slerp(
-            transform.rotation,
-            targetRotation,
-            rotationSpeed * Time.fixedDeltaTime
-        );
+        if (direction.sqrMagnitude > 0.01f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(direction.normalized);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                rotationSpeed * Time.fixedDeltaTime
+            );
+        }
     }
 
     public void DealDamage()
     {
         attackTimer = Time.time; // Reset cooldown timer
-        hasDealtDamageThisAttack = true; // Mark that damage has been dealt
 
         if (playerHealth != null && !playerHealth.IsDead) // Apply damage
         {

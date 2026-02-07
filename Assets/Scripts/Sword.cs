@@ -9,8 +9,19 @@ public class Sword : MonoBehaviour
             PlayerCombat playerCombat = other.GetComponent<PlayerCombat>();
             if (playerCombat != null)
             {
-                playerCombat.PickUpSword();
-                Destroy(gameObject);
+                playerCombat.SetNearbySword(this);
+            }
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            PlayerCombat playerCombat = other.GetComponent<PlayerCombat>();
+            if (playerCombat != null)
+            {
+                playerCombat.ClearNearbySword(this);
             }
         }
     }

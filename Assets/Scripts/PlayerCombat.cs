@@ -22,6 +22,7 @@ public class PlayerCombat : MonoBehaviour
     private Health playerHealth;
     private float swordAttackTimer = 0f;
     private float gunAttackTimer = 0f;
+    private Sword nearbySwordPickup;
 
     void Start()
     {
@@ -29,9 +30,23 @@ public class PlayerCombat : MonoBehaviour
         playerHealth = GetComponent<Health>();
 
         if (swordObject == null)
+        {
             Debug.LogWarning("Sword object not assigned to PlayerCombat!");
+        }
         else
-            swordObject.SetActive(hasSword);
+        {
+            // If the sword is already active in the scene (placed in hand), set hasSword to true so we can attack.
+            if (swordObject.activeSelf)
+            {
+                hasSword = true;
+            }
+            // If hasSword is checked in inspector but object is off, turn it on.
+            else if (hasSword)
+            {
+                swordObject.SetActive(true);
+            }
+        }
+            
         if (gunObject == null)
             Debug.LogWarning("Gun object not assigned to PlayerCombat!");
     }
@@ -41,6 +56,59 @@ public class PlayerCombat : MonoBehaviour
         // Update cooldown timers
         swordAttackTimer += Time.deltaTime;
         gunAttackTimer += Time.deltaTime;
+    }
+
+    /// <summary>
+    /// Input callback for Equip action
+    /// </summary>
+    public void OnEquip(InputValue value)
+    {
+        if (value.isPressed && nearbySwordPickup != null && !hasSword)
+        {
+            // If no sword is assigned on the player, use the one we just found
+            if (swordObject == null)
+            {
+                swordObject = nearbySwordPickup.gameObject;
+            }
+
+            PickUpSword();
+            
+            // If the pickup is a separate object, destroy it. 
+            // If it's the same object (single-object setup), just remove the Sword component so it can't be picked up again.
+            if (nearbySwordPickup.gameObject != swordObject)
+            {
+                Destroy(nearbySwordPickup.gameObject);
+            }
+            else
+            {
+                // We equipped the pickup directly. Clean up components that make it a pickup.
+                Destroy(nearbySwordPickup); // Remove Sword script
+                
+                // Disable physics so it moves with hand
+                var rb = swordObject.GetComponent<Rigidbody>();
+                if (rb != null) rb.isKinematic = true;
+                
+                var col = swordObject.GetComponent<Collider>();
+                if (col != null) col.enabled = false;
+            }
+
+            nearbySwordPickup = null;
+        }
+    }
+
+    public void SetNearbySword(Sword sword)
+    {
+        nearbySwordPickup = sword;
+        Debug.Log("Press 'Equip' to pick up sword");
+        
+    }
+
+    public void ClearNearbySword(Sword sword)
+    {
+        if (nearbySwordPickup == sword)
+        {
+            nearbySwordPickup = null;
+        }
     }
 
     /// <summary>

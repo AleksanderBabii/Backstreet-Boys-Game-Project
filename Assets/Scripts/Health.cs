@@ -13,6 +13,7 @@ public class Health : MonoBehaviour, IDamageable
     [SerializeField]
     private PlayerHealthUI playerHealthUI;
     private EnemyMeleeAI enemyAI;
+    private PlayerAnimController playerAnim;
 
 
     void Awake()
@@ -25,6 +26,7 @@ public class Health : MonoBehaviour, IDamageable
             playerHealthUI.SetMaxHealth(maxHealth);
         }
         enemyAI = GetComponent<EnemyMeleeAI>();
+        playerAnim = GetComponent<PlayerAnimController>();
     }
 
     public void TakeDamage(float amount)
@@ -79,8 +81,9 @@ public class Health : MonoBehaviour, IDamageable
 
         OnDeath?.Invoke();
 
-        Debug.Log($"{gameObject.name} died.");
 
+        if (playerAnim != null)
+            playerAnim.Die();
         // Delay destruction for player/enemy to play death animation
         Destroy(gameObject, 2f);
     }

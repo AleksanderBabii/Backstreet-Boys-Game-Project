@@ -98,6 +98,11 @@ public class EnemyAIAnimController : MonoBehaviour
         enemyAnimator.SetBool("isAttacking", false);
     }
 
+    public void Dizzy()
+    {
+        enemyAnimator.SetTrigger("isHit");
+    }
+
     public void Die()
     {
         enemyAnimator.SetTrigger("Die");

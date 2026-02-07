@@ -9,6 +9,7 @@ public class Health : MonoBehaviour, IDamageable
     public bool IsDead { get; private set; }
     public event Action<float> OnHealthChanged;
     public event Action OnDeath;
+    public event Action OnDamageTaken;
 
     [SerializeField]
     private PlayerHealthUI playerHealthUI;
@@ -45,6 +46,7 @@ public class Health : MonoBehaviour, IDamageable
             playerHealthUI.SetHealth(currentHealth);
         }
         OnHealthChanged?.Invoke(currentHealth);
+        OnDamageTaken?.Invoke();
 
         if (currentHealth <= 0f)
             Die();

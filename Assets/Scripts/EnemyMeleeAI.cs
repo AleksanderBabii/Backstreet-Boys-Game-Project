@@ -43,7 +43,10 @@ public class EnemyMeleeAI : MonoBehaviour
 
         myHealth = GetComponent<Health>();
         if (myHealth != null)
+        {
             myHealth.OnDeath += HandleDeath;
+            myHealth.OnDamageTaken += HandleDamage;
+        }
 
         rb = GetComponent<Rigidbody>();
         enemyAnimController = GetComponent<EnemyAIAnimController>();
@@ -142,7 +145,15 @@ public class EnemyMeleeAI : MonoBehaviour
     void OnDestroy()
     {
         if (myHealth != null)
+        {
             myHealth.OnDeath -= HandleDeath;
+            myHealth.OnDamageTaken -= HandleDamage;
+        }
+    }
+    void HandleDamage()
+    {
+        if (enemyAnimController != null)
+            enemyAnimController.Dizzy();
     }
 
     void HandleDeath()
